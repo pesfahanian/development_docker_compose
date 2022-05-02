@@ -1,0 +1,103 @@
+version: '3.9'
+
+services:
+
+    postgres:
+        container_name: postgres
+        image: postgres
+        restart: always
+        environment:
+            - POSTGRES_USER={{POSTGRES_USER}}
+            - POSTGRES_PASSWORD={{POSTGRES_PASSWORD}}
+            - POSTGRES_MULTIPLE_DATABASES={{POSTGRES_MULTIPLE_DATABASES}}
+        ports:
+            - "5432:5432"
+        networks:
+            - postgres-net
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+
+    pgadmin:
+        container_name: pgadmin
+        image: dpage/pgadmin4
+        depends_on:
+            - postgres
+        environment:
+            - PGADMIN_DEFAULT_EMAIL={{PGADMIN_DEFAULT_EMAIL}}
+            - PGADMIN_DEFAULT_PASSWORD={{PGADMIN_DEFAULT_PASSWORD}}
+        ports:
+            - "5050:80"
+        networks:
+            - postgres-net
+        volumes:
+            - pgadmin-data:/var/lib/pgadmin
+
+    redis:
+        container_name: redis
+        image: redis
+        ports:
+            - "6379:6379"
+
+    rabbitmq:
+        container_name: rabbitmq
+        image: 'rabbitmq:3-management'
+        restart: always
+        hostname: rabbitmq
+        environment:
+            - RABBITMQ_DEFAULT_USER={{RABBITMQ_DEFAULT_USER}}
+            - RABBITMQ_DEFAULT_PASS={{RABBITMQ_DEFAULT_PASS}}
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        expose:
+            - 5672
+            - 15672
+
+    elasticsearch:
+        container_name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+        environment:
+            - xpack.security.enabled=false
+            - "discovery.type=single-node"
+        ports:
+            - "9200:9200"
+        networks:
+            - elasticsearch-net
+        volumes:
+            - elasticsearch-data:/usr/share/elasticsearch/data
+
+    kibana:
+        container_name: kibana
+        image: docker.elastic.co/kibana/kibana:7.11.0
+        depends_on:
+            - elasticsearch
+        environment:
+            - ELASTICSEARCH_HOSTS=http://elasticsearch:9200/
+        ports:
+            - "5601:5601"
+        networks:
+            - elasticsearch-net
+
+    portainer:
+        container_name: portainer
+        image: portainer/portainer-ce
+        restart: always
+        ports:
+            - "8000:8000"
+            - "9000:9000"
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /var/run/docker.sock:/var/run/docker.sock
+            - portainer-data:/data
+
+networks:
+    postgres-net:
+        driver: bridge
+    elasticsearch-net:
+        driver: bridge
+
+volumes:
+    postgres-data:
+    pgadmin-data:
+    elasticsearch-data:
+    portainer-data:
